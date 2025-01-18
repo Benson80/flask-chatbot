@@ -21,7 +21,7 @@
 1. **克隆仓库**：
 
    ```
-   git clone https://github.com/benson80/flask-chatbot.git
+   git clone https://gitclone.com/github.com/benson80/flask-chatbot.git
    ```
 
 2. **构建 Docker 镜像**：
