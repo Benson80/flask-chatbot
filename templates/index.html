@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 聊天机器人</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-image: url('https://www.cisco.com/content/dam/cisco-cdc/site/images/open-graph/solutions/artificial-intelligence/aihub-not-hype-1200x630.jpg');  /* 替换为你的图片链接 */
+            background-size: cover;
+            background-position: center;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chat-container {
+            width: 400px;
+            height: 550px;
+            background: rgba(255, 255, 255, 0.9); /* 半透明背景，使得背景图仍可见 */
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: fadeIn 1s ease-out;
+            resize: both;  /* 启用调整大小 */
+            max-width: 900px; /* 最大宽度 */
+            max-height: 500px; /* 最大高度 */
+            min-width: 500px; /* 最小宽度 */
+            min-height: 550px; /* 最小高度 */
+            position: absolute; /* 使其可以自由移动 */
+        }
+
+        .header {
+            background-color: #2196F3;
+            color: #fff;
+            text-align: center;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 15px 15px 0 0;
+            cursor: move; /* 启用拖动 */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+
+        .header span {
+            font-size: 12px;
+            color: #fff;
+            float: right; /* 将“By Benson Sun”放到最右边 */
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f1f1f1;
+            border-bottom: 2px solid #ddd;
+            border-top: 2px solid #ddd;
+            border-radius: 0 0 15px 15px;
+            margin-top: 60px; /* 留出头部空间 */
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 12px 16px;
+            border-radius: 20px;
+            background: #F1F1F1;
+            max-width: 75%;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            background: #8A4F9E;
+            color: white;
+            margin-left: auto;
+            border-radius: 20px 20px 0 20px;
+        }
+
+        .input-container {
+            display: flex;
+            padding: 12px;
+            border-top: 2px solid #ddd;
+            background-color: #fff;
+        }
+
+        input[type="text"] {
+            width: 80%;
+            padding: 12px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        button {
+            width: 15%;
+            padding: 12px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #6D2C8F;
+        }
+
+        #stopButton {
+            background: #e53935; /* 红色停止按钮 */
+        }
+
+        #stopButton:hover {
+            background: #d32f2f; /* 红色停止按钮悬停 */
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container" id="chatContainer">
+        <div class="header" id="chatHeader">
+            AI 聊天机器人 <span>By Benson Sun</span>
+        </div>
+        <div class="messages" id="messages"></div>
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="输入你的问题..." onkeydown="handleKeyDown(event)" />
+            <button onclick="sendMessage()">发送</button>
+            <button onclick="startSpeechRecognition()">语音输入</button> <!-- 语音输入按钮 -->
+            <button id="stopButton" onclick="stopAIResponse()">停止回复</button> <!-- 停止回复按钮 -->
+        </div>
+    </div>
+
+    <script>
+        // 创建SpeechSynthesis对象来播放语音
+        const synth = window.speechSynthesis;
+        let isSpeaking = false; // 标记是否正在播放语音
+
+        // 获取中文女性语音
+        function getFemaleVoice() {
+            const voices = synth.getVoices();
+            for (let i = 0; i < voices.length; i++) {
+                if (voices[i].lang === 'zh-CN' && voices[i].name.includes('xiaoxiao')) {  // 根据浏览器支持的中文语音选择女性语音
+                    return voices[i];
+                }
+            }
+            return voices[0];  // 如果没有找到，则默认使用第一个语音
+        }
+
+        // 将消息显示在聊天框中
+        function displayMessage(message, isUser = false) {
+            const messagesDiv = document.getElementById("messages");
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message");
+            if (isUser) {
+                messageDiv.classList.add("user");
+            }
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;  // 保持滚动条在底部
+        }
+
+        // 停止之前的语音播放
+        function stopPreviousSpeech() {
+            if (synth.speaking) {
+                synth.cancel();  // 停止正在播放的语音
+                isSpeaking = false;  // 重置语音播放状态
+            }
+        }
+
+        // 播放AI的语音回复
+        function speakMessage(message) {
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.lang = 'zh-CN';  // 设置语音为中文
+            utterance.voice = getFemaleVoice();  // 设置语音为女性声音
+            utterance.onstart = function () {
+                isSpeaking = true; // 标记正在播放语音
+            };
+            utterance.onend = function () {
+                isSpeaking = false; // 播放完毕
+            };
+            synth.speak(utterance);
+        }
+
+        // 发送消息到后端并获取响应
+        function sendMessage() {
+            const userInput = document.getElementById("userInput").value;
+            if (!userInput.trim()) return;
+
+            // 显示用户消息
+            displayMessage(userInput, true);
+
+            // 停止之前的语音播放
+            stopPreviousSpeech();
+
+            // 发送请求到后端
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'message=' + encodeURIComponent(userInput),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 显示AI的响应
+                displayMessage(data.response);
+
+                // 播放AI的语音回复
+                speakMessage(data.response);
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+
+            // 清空输入框，但不清空消息区域
+            document.getElementById("userInput").value = '';
+        }
+
+        // 处理回车键发送消息
+        function handleKeyDown(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();  // 阻止回车产生换行
+                sendMessage();
+            }
+        }
+
+        // 语音识别功能
+        function startSpeechRecognition() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'zh-CN'; // 识别中文
+
+            // 清空输入框，确保不会录入AI的回应
+            document.getElementById("userInput").value = '';
+
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;  // 获取识别结果
+                document.getElementById("userInput").value = transcript;  // 将识别到的文本放入输入框
+
+                // 只在用户输入时自动发送消息
+                sendMessage();
+            };
+
+            recognition.onerror = function(event) {
+                console.error("语音识别错误：", event.error);
+            };
+        }
+
+        // 停止AI的语音回复
+        function stopAIResponse() {
+            stopPreviousSpeech();  // 停止语音播放
+        }
+
+        // 拖动对话框功能
+        const header = document.getElementById('chatHeader');
+        const chatContainer = document.getElementById('chatContainer');
+        
+        header.onmousedown = function (event) {
+            let offsetX = event.clientX - chatContainer.getBoundingClientRect().left;
+            let offsetY = event.clientY - chatContainer.getBoundingClientRect().top;
+
+            document.onmousemove = function (moveEvent) {
+                // 获取浏览器视口的宽度和高度
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                // 计算拖动后的对话框位置
+                let newLeft = moveEvent.clientX - offsetX;
+                let newTop = moveEvent.clientY - offsetY;
+
+                // 限制左侧和顶部不超出视口
+                if (newLeft < 0) newLeft = 0;
+                if (newTop < 0) newTop = 0;
+
+                // 限制右侧和底部不超出视口
+                if (newLeft + chatContainer.offsetWidth > viewportWidth) {
+                    newLeft = viewportWidth - chatContainer.offsetWidth;
+                }
+                if (newTop + chatContainer.offsetHeight > viewportHeight) {
+                    newTop = viewportHeight - chatContainer.offsetHeight;
+                }
+
+                // 更新对话框位置
+                chatContainer.style.left = newLeft + 'px';
+                chatContainer.style.top = newTop + 'px';
+            };
+
+            document.onmouseup = function () {
+                document.onmousemove = null;
+                document.onmouseup = null;
+            };
+        };
+    </script>
+</body>
+</html>

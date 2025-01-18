@@ -1,0 +1,8 @@
+Flask==2.0.3
+transformers>=4.19.0
+tokenizers==0.12.1
+torch==2.5.1
+werkzeug==2.0
+SpeechRecognition
+pyttsx3
+gtts
